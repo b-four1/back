@@ -1,0 +1,384 @@
+{
+  "info": {
+    "name": "Widgets API - Automated Collection",
+    "description": "Postman collection for widgets.js endpoints. Automatically saves tokens and ids as collection variables.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "base_url", "value": "http://localhost:5000", "type": "string" },
+    { "key": "base_path", "value": "api/widgets", "type": "string" },
+    { "key": "admin_token", "value": "", "type": "string" },
+    { "key": "user_token", "value": "", "type": "string" },
+    { "key": "device_type_id", "value": "", "type": "string" },
+    { "key": "widget_type_id", "value": "", "type": "string" },
+    { "key": "property_id", "value": "", "type": "string" },
+    { "key": "property_ids", "value": "", "type": "string" },
+    { "key": "widget_id", "value": "", "type": "string" },
+    { "key": "layout_id", "value": "", "type": "string" },
+    { "key": "dashboard_id", "value": "", "type": "string" },
+    { "key": "hierarchy_id", "value": "1", "type": "string" },
+    { "key": "device_id", "value": "1", "type": "string" }
+  ],
+  "item": [
+    {
+      "name": "Setup",
+      "item": [
+        {
+          "name": "Admin Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "  try {",
+                  "    const r = pm.response.json();",
+                  "    if (r.success && r.data && r.data.token) {",
+                  "      pm.collectionVariables.set('admin_token', r.data.token);",
+                  "      console.log('admin_token saved');",
+                  "    } else {",
+                  "      console.warn('Admin login succeeded but token not found in response');",
+                  "    }",
+                  "  } catch (e) { console.error('Admin login parse error', e); }",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@saherflow.com\",\n  \"password\": \"Admin123\"\n}"
+            },
+            "url": { "raw": "{{base_url}}/api/auth/login", "host": ["{{base_url}}"], "path": ["api", "auth", "login"] },
+            "description": "Login as admin. Saves admin_token."
+          }
+        },
+        {
+          "name": "User Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "  try {",
+                  "    const r = pm.response.json();",
+                  "    if (r.success && r.data && r.data.token) {",
+                  "      pm.collectionVariables.set('user_token', r.data.token);",
+                  "      console.log('user_token saved');",
+                  "    } else {",
+                  "      console.warn('User login succeeded but token not found in response');",
+                  "    }",
+                  "  } catch (e) { console.error('User login parse error', e); }",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"john@arabco.com\",\n  \"password\": \"Password123\"\n}"
+            },
+            "url": { "raw": "{{base_url}}/api/auth/login", "host": ["{{base_url}}"], "path": ["api", "auth", "login"] },
+            "description": "Login as a regular user. Saves user_token."
+          }
+        }
+      ]
+    },
+
+    {
+      "name": "Widget Endpoints",
+      "item": [
+        {
+          "name": "Device Types",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200', function () { pm.response.to.have.status(200); });",
+                  "try {",
+                  "  const r = pm.response.json();",
+                  "  if (r.success && Array.isArray(r.data) && r.data.length > 0) {",
+                  "    pm.collectionVariables.set('device_type_id', r.data[0].id);",
+                  "    console.log('device_type_id set to', r.data[0].id);",
+                  "  }",
+                  "} catch (e) { console.error(e); }"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{admin_token}}", "type": "string" }] },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}{{base_path}}/device-types",
+              "host": ["{{base_url}}"],
+              "path": ["{{base_path}}","device-types"]
+            },
+            "description": "Get device types (admin). Saves first id into device_type_id."
+          }
+        },
+        {
+          "name": "Available Widgets",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200', function () { pm.response.to.have.status(200); });",
+                  "try {",
+                  "  const r = pm.response.json();",
+                  "  if (r.success && r.data && Array.isArray(r.data.widgetTypes) && r.data.widgetTypes.length > 0) {",
+                  "    pm.collectionVariables.set('widget_type_id', r.data.widgetTypes[0].id);",
+                  "    console.log('widget_type_id set to', r.data.widgetTypes[0].id);",
+                  "  }",
+                  "  if (r.success && r.data && Array.isArray(r.data.properties) && r.data.properties.length > 0) {",
+                  "    pm.collectionVariables.set('property_id', r.data.properties[0].id);",
+                  "    pm.collectionVariables.set('property_ids', r.data.properties.slice(0,1).map(p=>p.id).join(','));",
+                  "    console.log('property_id set to', r.data.properties[0].id);",
+                  "  }",
+                  "} catch (e) { console.error(e); }"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{user_token}}", "type": "string" }] },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}{{base_path}}/available-widgets?deviceTypeId={{device_type_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["{{base_path}}","available-widgets"],
+              "query": [{ "key": "deviceTypeId", "value": "{{device_type_id}}" }]
+            },
+            "description": "Get widget types and properties for a device type. Saves widget_type_id & property_id."
+          }
+        },
+        {
+          "name": "Create Widget",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200 or 201', function () { pm.response.to.be.oneOf([200,201]); });",
+                  "try {",
+                  "  const r = pm.response.json();",
+                  "  if (r.success && r.data && r.data.widgetId) {",
+                  "    pm.collectionVariables.set('widget_id', r.data.widgetId);",
+                  "    console.log('widget_id set to', r.data.widgetId);",
+                  "  }",
+                  "} catch (e) { console.error(e); }"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{admin_token}}", "type": "string" }] },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"deviceTypeId\": {{device_type_id}},\n  \"widgetTypeId\": {{widget_type_id}},\n  \"propertyIds\": [ {{property_id}} ],\n  \"displayName\": \"Auto Widget - {{device_type_id}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}{{base_path}}/create-widget",
+              "host": ["{{base_url}}"],
+              "path": ["{{base_path}}","create-widget"]
+            },
+            "description": "Create a widget dynamically using saved device_type_id, widget_type_id and property_id."
+          }
+        },
+        {
+          "name": "Add To Dashboard",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', function () { pm.response.to.have.status(200); });",
+                  "try {",
+                  "  const r = pm.response.json();",
+                  "  if (r.success && r.data && r.data.layoutId) {",
+                  "    pm.collectionVariables.set('layout_id', r.data.layoutId);",
+                  "    console.log('layout_id set to', r.data.layoutId);",
+                  "  }",
+                  "} catch (e) { console.error(e); }"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{admin_token}}", "type": "string" }] },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"widgetDefinitionId\": {{widget_id}},\n  \"layoutConfig\": { \"x\": 0, \"y\": 0, \"w\": 6, \"h\": 3 }\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}{{base_path}}/add-to-dashboard",
+              "host": ["{{base_url}}"],
+              "path": ["{{base_path}}","add-to-dashboard"]
+            },
+            "description": "Adds created widget to the active dashboard. Saves layout_id."
+          }
+        },
+        {
+          "name": "User Dashboard",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200', function () { pm.response.to.have.status(200); });",
+                  "try {",
+                  "  const r = pm.response.json();",
+                  "  if (r.success && r.data && r.data.dashboard && r.data.dashboard.id) {",
+                  "    pm.collectionVariables.set('dashboard_id', r.data.dashboard.id);",
+                  "    console.log('dashboard_id set to', r.data.dashboard.id);",
+                  "  }",
+                  "} catch (e) { console.error(e); }"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{user_token}}", "type": "string" }] },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}{{base_path}}/user-dashboard",
+              "host": ["{{base_url}}"],
+              "path": ["{{base_path}}","user-dashboard"]
+            },
+            "description": "Get the active dashboard for the user's company."
+          }
+        },
+        {
+          "name": "Widget Data (historical)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200', function () { pm.response.to.have.status(200); });",
+                  "try { const r = pm.response.json(); if (!r.success) { console.warn('widget-data returned success=false'); } } catch (e) {}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{user_token}}", "type": "string" }] },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}{{base_path}}/widget-data/{{widget_id}}?limit=100&timeRange=today&hierarchyId={{hierarchy_id}}&deviceId={{device_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["{{base_path}}","widget-data","{{widget_id}}"],
+              "query": [
+                { "key": "limit", "value": "100" },
+                { "key": "timeRange", "value": "today" },
+                { "key": "hierarchyId", "value": "{{hierarchy_id}}" },
+                { "key": "deviceId", "value": "{{device_id}}" }
+              ]
+            },
+            "description": "Get historical data for widget."
+          }
+        },
+        {
+          "name": "Widget Data Latest",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', function () { pm.response.to.have.status(200); });",
+                  "try { const r = pm.response.json(); if (!r.success) { console.warn('widget-data latest returned success=false'); } } catch (e) {}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{user_token}}", "type": "string" }] },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}{{base_path}}/widget-data/{{widget_id}}/latest?hierarchyId={{hierarchy_id}}&deviceId={{device_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["{{base_path}}","widget-data","{{widget_id}}","latest"],
+              "query": [
+                { "key": "hierarchyId", "value": "{{hierarchy_id}}" },
+                { "key": "deviceId", "value": "{{device_id}}" }
+              ]
+            },
+            "description": "Get latest aggregated value for widget."
+          }
+        },
+        {
+          "name": "Update Layout (bulk)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', function () { pm.response.to.have.status(200); });",
+                  "try { const r = pm.response.json(); if (!r.success) { console.warn('update-layout returned success=false'); } } catch (e) {}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{admin_token}}", "type": "string" }] },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"layouts\": [\n    { \"layoutId\": {{layout_id}}, \"layoutConfig\": { \"x\": 0, \"y\": 0, \"w\": 6, \"h\": 3 } }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}{{base_path}}/update-layout",
+              "host": ["{{base_url}}"],
+              "path": ["{{base_path}}","update-layout"]
+            },
+            "description": "Update layout for dashboard items. Uses saved layout_id."
+          }
+        },
+        {
+          "name": "Remove Widget",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200 or 404', function () { pm.expect(pm.response.code).to.be.oneOf([200,404]); });",
+                  "try { const r = pm.response.json(); if (r && !r.success) { console.warn('remove-widget responded with success=false'); } } catch (e) {}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{admin_token}}", "type": "string" }] },
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}{{base_path}}/remove-widget/{{layout_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["{{base_path}}","remove-widget","{{layout_id}}"]
+            },
+            "description": "Remove widget from dashboard using saved layout_id."
+          }
+        }
+      ]
+    }
+  ]
+}
